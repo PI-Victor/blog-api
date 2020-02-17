@@ -1,8 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 extern crate futures;
-#[macro_use]
-extern crate tokio;
 extern crate serde;
+extern crate tokio;
 #[macro_use]
 extern crate serde_derive;
 extern crate clap;
@@ -15,8 +14,15 @@ extern crate rocket;
 #[macro_use]
 extern crate rocket_contrib;
 
+extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
+
 use clap::{App, AppSettings, Arg, SubCommand};
 use config::{Config as Conf, ConfigError, Environment, File};
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
+use diesel_migrations::RunMigrationsError;
 use rocket::config::Config as RocketConfig;
 use rocket::config::Environment as RocketEnvironment;
 
@@ -29,15 +35,15 @@ use http::routes as endpoints;
 use http::{catchers, guards};
 
 const VERSION: &str = "0.1.0-alpha";
-const ASCIIART: &str = r#"
-"#;
+
+embed_migrations!();
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let matches = App::new("ceph-api")
         .settings(&[AppSettings::SubcommandRequiredElseHelp])
         .version(VERSION)
-        .about(ASCIIART)
+        .about("victor's blog")
         .author("Codeflavor Org")
         .arg(
             Arg::with_name("verbosity")
@@ -77,11 +83,11 @@ async fn main() -> Result<(), std::io::Error> {
     env_logger::Builder::from_default_env()
         .filter(Some(module_path!()), log_level)
         .init();
-    info!("{}", ASCIIART);
     debug!("Loaded configuration: {:?}", config);
+    run_migration(&config.postgres_uri).unwrap();
 
     task::spawn(async move {
-        debug!("Mounting routes...");
+        debug!("Starting server...");
         rocket::custom(
             RocketConfig::build(RocketEnvironment::Staging)
                 .address(&config.bind_address.to_string())
@@ -89,20 +95,26 @@ async fn main() -> Result<(), std::io::Error> {
                 .finalize()
                 .unwrap(),
         )
-        .mount("/", routes![endpoints::index])
-        .mount("/posts:postId", routes![])
-        .register(catchers![catchers::not_found, catchers::access_denied])
-        .launch();
-        Ok::<(), std::io::Error>(())
+        .mount("/post", routes![endpoints::get_post, endpoints::new_post])
+        .mount("/posts", routes![endpoints::get_posts])
+        .register(catchers![
+            catchers::not_found,
+            catchers::access_denied,
+            catchers::internal_server_error
+        ])
+        .attach(LogsDbConn::fairing())
+        .launch()
     })
     .await
-    .unwrap()
+    .unwrap();
+    Ok::<(), std::io::Error>(())
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Configuration {
     pub bind_address: Ipv4Addr,
     pub bind_port: u16,
+    pub postgres_uri: String,
 }
 
 impl Default for Configuration {
@@ -110,6 +122,7 @@ impl Default for Configuration {
         Self {
             bind_address: "127.0.0.1".parse::<Ipv4Addr>().unwrap(),
             bind_port: 8080,
+            postgres_uri: "postgres://user:pass@localhost/blog".to_string(),
         }
     }
 }
@@ -122,3 +135,21 @@ impl Configuration {
         c.try_into()
     }
 }
+
+fn run_migration(uri: &str) -> Result<(), RunMigrationsError> {
+    let connection = PgConnection::establish(uri)
+        .unwrap_or_else(|err| panic!("Failed to connect to {}: {}", uri, err));
+
+    debug!("Attempting to migrate to the latest schema...");
+
+    match embedded_migrations::run(&connection) {
+        Ok(_) => {
+            debug!("Successfully migrated to the latest schema");
+            Ok(())
+        }
+        Err(err) => Err(err),
+    }
+}
+
+#[database("blog")]
+struct LogsDbConn(diesel::PgConnection);

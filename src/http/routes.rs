@@ -1,12 +1,22 @@
-use api::types::Posts;
-use rocket_contrib::json::JsonValue;
-/// Index is the primary entrypoint of the application.
-///
-///
-// #[get("/")]
-// pub fn index() -> JsonValue {}
+use crate::api::types::{Post, User};
 
-// #[get("/posts", format = "application/json", data = "<bucket>")]
-// pub fn update_bucket(bucket: Json<types::Bucket>) -> JsonValue {
-//     "test".to_string()
-// }
+use rocket_contrib::json::Json;
+use rocket_contrib::json::JsonValue;
+
+#[get("/posts", format = "json")]
+pub fn get_posts() -> JsonValue {
+    json!({})
+}
+
+#[get("/post/<id>", format = "json")]
+pub fn get_post(id: usize) -> JsonValue {
+    json!({})
+}
+
+#[post("/post/new", format = "application/json", data = "<post>")]
+pub fn new_post(post: String) {}
+
+#[get("/user/<id>", format = "json")]
+pub fn get_user(id: usize) -> JsonValue {
+    json!({})
+}
