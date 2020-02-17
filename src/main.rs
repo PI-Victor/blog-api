@@ -25,6 +25,7 @@ use diesel::prelude::*;
 use diesel_migrations::RunMigrationsError;
 use rocket::config::Config as RocketConfig;
 use rocket::config::Environment as RocketEnvironment;
+use rocket_contrib::databases::{database_config, ConfigError as DBConfigError};
 
 use std::net::Ipv4Addr;
 use tokio::task;
@@ -88,10 +89,12 @@ async fn main() -> Result<(), std::io::Error> {
 
     task::spawn(async move {
         debug!("Starting server...");
+        //let db_config = database_config("blog", )
         rocket::custom(
             RocketConfig::build(RocketEnvironment::Staging)
                 .address(&config.bind_address.to_string())
                 .port(config.bind_port)
+                .workers(12)
                 .finalize()
                 .unwrap(),
         )
@@ -102,7 +105,6 @@ async fn main() -> Result<(), std::io::Error> {
             catchers::access_denied,
             catchers::internal_server_error
         ])
-        .attach(LogsDbConn::fairing())
         .launch()
     })
     .await
@@ -142,7 +144,7 @@ fn run_migration(uri: &str) -> Result<(), RunMigrationsError> {
 
     debug!("Attempting to migrate to the latest schema...");
 
-    match embedded_migrations::run(&connection) {
+    match embedded_migrations::run_with_output(&connection, &mut std::io::stdout()) {
         Ok(_) => {
             debug!("Successfully migrated to the latest schema");
             Ok(())
@@ -150,6 +152,3 @@ fn run_migration(uri: &str) -> Result<(), RunMigrationsError> {
         Err(err) => Err(err),
     }
 }
-
-#[database("blog")]
-struct LogsDbConn(diesel::PgConnection);
