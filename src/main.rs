@@ -14,23 +14,19 @@ extern crate diesel_migrations;
 #[macro_use]
 extern crate log;
 
-use diesel::pg::PgConnection;
-
 use rocket::fairing::AdHoc;
 use rocket::Rocket;
 
 mod api;
 mod http;
+mod schema;
 
 use http::routes as endpoints;
 use http::{catchers, guards};
 
-const VERSION: &str = "0.1.0-alpha";
+use api::types::DBConn;
 
 embed_migrations!();
-
-#[database("postgres_db")]
-pub struct DBConn(PgConnection);
 
 fn rocket() -> Rocket {
     rocket::ignite()
@@ -64,12 +60,14 @@ fn run_migration(rocket: Rocket) -> Result<Rocket, Rocket> {
 #[cfg(test)]
 mod test {
     use super::rocket;
-    use rocket::http::Status;
+    use rocket::http::{ContentType, Status};
     use rocket::local::Client;
+
     #[test]
     fn get_posts() {
         let client = Client::new(rocket()).expect("wanted valid rocket instance");
         let response = client.get("/posts").dispatch();
         assert_eq!(response.status(), Status::Ok);
+        assert_eq!(response.content_type(), Some(ContentType::JSON))
     }
 }

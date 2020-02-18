@@ -19,6 +19,6 @@ diesel_migrations = "1.4.0"
 [dependencies.rocket_contrib]
 version = "0.4" 
 default_features = false
-features = ["diesel_postgres_pool"]
+features = ["diesel_postgres_pool", "json"]
 
 

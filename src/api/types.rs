@@ -1,3 +1,9 @@
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
+
+#[database("postgres_db")]
+pub struct DBConn(PgConnection);
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Post {
     id: String,

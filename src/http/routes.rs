@@ -1,13 +1,15 @@
-use crate::api::types::{Post, User};
+use crate::api::types::{Post, User, DBConn};
 
 #[get("/", format = "json")]
-pub fn get_posts() {}
+pub fn get_posts(conn: DBConn) {
+    
+}
 
-#[get("/post/<id>", format = "json")]
+#[get("/<id>", format = "json")]
 pub fn get_post(id: usize) {}
 
-#[post("/post/new", format = "application/json", data = "<post>")]
+#[post("/new", format = "application/json", data = "<post>")]
 pub fn new_post(post: String) {}
 
-#[get("/user/<id>", format = "json")]
+#[get("/<id>", format = "json")]
 pub fn get_user(id: usize) {}
