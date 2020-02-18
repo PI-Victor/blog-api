@@ -1,4 +1,0 @@
-bind_address: "127.0.0.1"
-bind_port: 4000
-log_level: 3
-postgres_uri: postgres://root:123123@localhost/blog
