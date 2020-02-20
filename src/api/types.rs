@@ -6,7 +6,7 @@ use diesel::prelude::*;
 #[database("postgres_db")]
 pub struct DBConn(PgConnection);
 
-#[derive(Insertable, Serialize, Debug)]
+#[derive(Insertable, Serialize, Deserialize, Debug)]
 #[table_name = "posts"]
 pub struct NewPost {
     title: String,
@@ -17,7 +17,7 @@ pub struct NewPost {
     tags: String,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Post {
     title: String,
     body: String,
@@ -27,7 +27,7 @@ pub struct Post {
     tags: String,
 }
 
-#[derive(Queryable, Serialize, Debug)]
+#[derive(Queryable, Deserialize, Serialize, Debug)]
 pub struct Posts {
     entries: Vec<Post>,
 }
