@@ -21,5 +21,5 @@ with the `diesel cli`. This will update the file based on the current schema
 residing in the database.
 
 ```bash
- diesel migration run --database-url=postgres://root:pass@127.0.0.1/blog
+ $ diesel migration run --database-url=postgres://root:pass@127.0.0.1/blog
 ```
